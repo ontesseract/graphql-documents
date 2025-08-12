@@ -8,7 +8,7 @@ Example:
 import { CodegenConfig } from '@graphql-codegen/cli'
 
 const MediaItem = `#graphql
-  fragment MediaItem on MediaItem {
+  fragment MediaItemAdmin on MediaItem {
     blurHash
     contentLength
     contentType
