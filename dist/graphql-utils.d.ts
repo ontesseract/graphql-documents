@@ -1,0 +1,13 @@
+import { type DocumentNode, type GraphQLField, type GraphQLInputType, type GraphQLObjectType, type GraphQLOutputType, type GraphQLSchema, type OperationDefinitionNode } from "graphql";
+export declare function endsWithOneOf(value: string, suffixes: string[]): boolean;
+export declare function getOutputTypeName(type: GraphQLOutputType): string;
+export declare function getBaseType(type: GraphQLOutputType): GraphQLOutputType;
+export declare function getBaseInputType(type: GraphQLInputType): GraphQLInputType;
+export declare function hasScalars(type: GraphQLObjectType): boolean;
+export declare function generateVariables(field: GraphQLField<any, any>, excludeKeys?: string[]): string;
+export declare function generateArgs(field: GraphQLField<any, any>, excludeKeys?: string[], upsert?: boolean, schema?: GraphQLSchema | undefined): string;
+export declare function returnFieldMatchesOperationName(definition: OperationDefinitionNode): boolean;
+export declare function hasLimitAndOffsetArgs(definition: OperationDefinitionNode): boolean;
+export declare function documentToDocument(document: DocumentNode | string): DocumentNode;
+export declare function getOperationName(document: DocumentNode | string): string | undefined;
+export declare function documentToString(document: DocumentNode | string): string;
