@@ -110,6 +110,8 @@ function generateFragments(schema, config, mode) {
         try {
             if (fragmentOverrides === null || fragmentOverrides === void 0 ? void 0 : fragmentOverrides[typeName]) {
                 fragments.push(fragmentOverrides[typeName]);
+                var suffix = "".concat(fragmentSuffix !== null && fragmentSuffix !== void 0 ? fragmentSuffix : "", "NonOverride");
+                fragments.push.apply(fragments, generateFragmentsForType(schema, typeName, mode, fragmentPrefix, suffix));
             }
             else {
                 fragments.push.apply(fragments, generateFragmentsForType(schema, typeName, mode, fragmentPrefix, fragmentSuffix));

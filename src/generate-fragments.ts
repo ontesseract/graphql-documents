@@ -159,6 +159,17 @@ export function generateFragments(
     try {
       if (fragmentOverrides?.[typeName]) {
         fragments.push(fragmentOverrides[typeName]);
+
+        const suffix = `${fragmentSuffix ?? ""}NonOverride`;
+        fragments.push(
+          ...generateFragmentsForType(
+            schema,
+            typeName,
+            mode,
+            fragmentPrefix,
+            suffix
+          )
+        );
       } else {
         fragments.push(
           ...generateFragmentsForType(
