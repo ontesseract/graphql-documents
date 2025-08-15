@@ -148,7 +148,7 @@ export function generateFragments(
   config: GraphqlDocumentsConfig,
   mode = Mode.SCALARS_ONLY
 ): string {
-  const { fragmentPrefix, fragmentSuffix, fragmentOverrides } = config;
+  const { fragmentPrefix, fragmentSuffix, overrides } = config;
   const typeNames = Object.keys(schema.getTypeMap());
   const fragments: string[] = [];
 
@@ -157,8 +157,8 @@ export function generateFragments(
       return;
     }
     try {
-      if (fragmentOverrides?.[typeName]) {
-        fragments.push(fragmentOverrides[typeName]);
+      if (overrides?.[typeName]) {
+        fragments.push(overrides[typeName]);
 
         const suffix = `${fragmentSuffix ?? ""}NonOverride`;
         fragments.push(

@@ -46,12 +46,16 @@ export function generateSubscriptions(
         ? subscriptionName
         : `${subscriptionName}: ${subscriptionField.name}`;
 
-    const subscription = `subscription ${subscriptionName}${generateVariables(subscriptionField)} {
-      ${aliasName}${generateArgs(subscriptionField)} {
-        ...${fragmentPrefix ?? ""}${fragmentName}${fragmentSuffix ?? ""}
-      }
-    }`;
-    subscriptions.push(subscription);
+    if (config.overrides?.[subscriptionName]) {
+      subscriptions.push(config.overrides?.[subscriptionName]);
+    } else {
+      const subscription = `subscription ${subscriptionName}${generateVariables(subscriptionField)} {
+        ${aliasName}${generateArgs(subscriptionField)} {
+          ...${fragmentPrefix ?? ""}${fragmentName}${fragmentSuffix ?? ""}
+        }
+      }`;
+      subscriptions.push(subscription);
+    }
   });
 
   return `# Subscriptions\n\n${subscriptions.join("\n\n")}\n\n`;

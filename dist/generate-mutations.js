@@ -8,7 +8,7 @@ var case_1 = __importDefault(require("case"));
 var pluralize_1 = __importDefault(require("pluralize"));
 var graphql_utils_1 = require("./graphql-utils");
 function generateMutation(mutationField, schema, upserts, config) {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e, _f;
     var fragmentName = (0, graphql_utils_1.getOutputTypeName)(mutationField.type);
     var typePascalCase = case_1.default.pascal(fragmentName.replace("MutationResponse", ""));
     var typePascalCasePlural = (0, pluralize_1.default)(typePascalCase);
@@ -38,7 +38,10 @@ function generateMutation(mutationField, schema, upserts, config) {
         mutationName = mutationName.replace("insert", "upsert");
         aliasName = "".concat(mutationName, ":").concat(mutationField.name);
     }
-    return "mutation ".concat(mutationName).concat((0, graphql_utils_1.generateVariables)(mutationField, (_a = config.excludeArgKeys) !== null && _a !== void 0 ? _a : []), " {\n    ").concat(aliasName).concat((0, graphql_utils_1.generateArgs)(mutationField, (_b = config.excludeArgKeys) !== null && _b !== void 0 ? _b : [], upserts, schema), " {\n      ...").concat((_c = config.fragmentPrefix) !== null && _c !== void 0 ? _c : "").concat(fragmentName).concat((_d = config.fragmentSuffix) !== null && _d !== void 0 ? _d : "", "\n    }\n  }");
+    if ((_a = config.overrides) === null || _a === void 0 ? void 0 : _a[mutationName]) {
+        return (_b = config.overrides) === null || _b === void 0 ? void 0 : _b[mutationName];
+    }
+    return "mutation ".concat(mutationName).concat((0, graphql_utils_1.generateVariables)(mutationField, (_c = config.excludeArgKeys) !== null && _c !== void 0 ? _c : []), " {\n    ").concat(aliasName).concat((0, graphql_utils_1.generateArgs)(mutationField, (_d = config.excludeArgKeys) !== null && _d !== void 0 ? _d : [], upserts, schema), " {\n      ...").concat((_e = config.fragmentPrefix) !== null && _e !== void 0 ? _e : "").concat(fragmentName).concat((_f = config.fragmentSuffix) !== null && _f !== void 0 ? _f : "", "\n    }\n  }");
 }
 function generateMutations(schema, config, upserts) {
     if (upserts === void 0) { upserts = false; }

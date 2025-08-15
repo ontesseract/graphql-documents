@@ -46,6 +46,11 @@ function generateMutation<T, V>(
     mutationName = mutationName.replace("insert", "upsert");
     aliasName = `${mutationName}:${mutationField.name}`;
   }
+
+  if (config.overrides?.[mutationName]) {
+    return config.overrides?.[mutationName];
+  }
+
   return `mutation ${mutationName}${generateVariables(mutationField, config.excludeArgKeys ?? [])} {
     ${aliasName}${generateArgs(mutationField, config.excludeArgKeys ?? [], upserts, schema)} {
       ...${config.fragmentPrefix ?? ""}${fragmentName}${config.fragmentSuffix ?? ""}

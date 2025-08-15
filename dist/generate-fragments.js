@@ -99,7 +99,7 @@ function generateFragmentsForType(schema, typeName, mode, prefix, suffix) {
 }
 function generateFragments(schema, config, mode) {
     if (mode === void 0) { mode = Mode.SCALARS_ONLY; }
-    var fragmentPrefix = config.fragmentPrefix, fragmentSuffix = config.fragmentSuffix, fragmentOverrides = config.fragmentOverrides;
+    var fragmentPrefix = config.fragmentPrefix, fragmentSuffix = config.fragmentSuffix, overrides = config.overrides;
     var typeNames = Object.keys(schema.getTypeMap());
     var fragments = [];
     typeNames.forEach(function (typeName) {
@@ -108,8 +108,8 @@ function generateFragments(schema, config, mode) {
             return;
         }
         try {
-            if (fragmentOverrides === null || fragmentOverrides === void 0 ? void 0 : fragmentOverrides[typeName]) {
-                fragments.push(fragmentOverrides[typeName]);
+            if (overrides === null || overrides === void 0 ? void 0 : overrides[typeName]) {
+                fragments.push(overrides[typeName]);
                 var suffix = "".concat(fragmentSuffix !== null && fragmentSuffix !== void 0 ? fragmentSuffix : "", "NonOverride");
                 fragments.push.apply(fragments, generateFragmentsForType(schema, typeName, mode, fragmentPrefix, suffix));
             }

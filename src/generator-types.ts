@@ -1,4 +1,9 @@
-export type GeneratorKind = 'all_documents' | 'fragments' | 'queries' | 'subscriptions' | 'mutations';
+export type GeneratorKind =
+  | "all_documents"
+  | "fragments"
+  | "queries"
+  | "subscriptions"
+  | "mutations";
 
 export interface GraphqlDocumentsConfig {
   /**
@@ -27,5 +32,5 @@ export interface GraphqlDocumentsConfig {
   fragmentSuffix?: string;
   excludeSuffixes?: string[];
   excludeArgKeys?: string[];
-  fragmentOverrides?: Record<string, string>;
+  overrides?: Record<string, string>;
 }

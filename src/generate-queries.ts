@@ -13,6 +13,7 @@ export function generateQueries(
   schema: GraphQLSchema,
   config: GraphqlDocumentsConfig
 ): string {
+  const { fragmentPrefix, fragmentSuffix, excludeSuffixes, overrides } = config;
   const queries: string[] = [];
   const queryType = schema.getQueryType();
   if (!queryType) {
@@ -22,7 +23,7 @@ export function generateQueries(
   const queryFields = queryType.getFields();
   Object.keys(queryFields).forEach((key) => {
     const queryField = queryFields[key];
-    if (endsWithOneOf(queryField.name, config.excludeSuffixes ?? [])) {
+    if (endsWithOneOf(queryField.name, excludeSuffixes ?? [])) {
       return;
     }
     const fragmentName = getOutputTypeName(queryField.type);
@@ -42,12 +43,16 @@ export function generateQueries(
         ? queryName
         : `${queryName}:${queryField.name}`;
 
-    const query = `query ${queryName}${generateVariables(queryField)} {
-      ${aliasName}${generateArgs(queryField)} {
-        ...${config.fragmentPrefix ?? ""}${fragmentName}${config.fragmentSuffix ?? ""}
-      }
-    }`;
-    queries.push(query);
+    if (overrides?.[queryName]) {
+      queries.push(overrides?.[queryName]);
+    } else {
+      const query = `query ${queryName}${generateVariables(queryField)} {
+        ${aliasName}${generateArgs(queryField)} {
+          ...${fragmentPrefix ?? ""}${fragmentName}${fragmentSuffix ?? ""}
+        }
+      }`;
+      queries.push(query);
+    }
   });
 
   return `# Queries\n\n${queries.join("\n\n")}\n\n`;

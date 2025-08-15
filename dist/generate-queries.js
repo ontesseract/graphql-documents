@@ -8,6 +8,7 @@ var case_1 = __importDefault(require("case"));
 var pluralize_1 = __importDefault(require("pluralize"));
 var graphql_utils_1 = require("./graphql-utils");
 function generateQueries(schema, config) {
+    var fragmentPrefix = config.fragmentPrefix, fragmentSuffix = config.fragmentSuffix, excludeSuffixes = config.excludeSuffixes, overrides = config.overrides;
     var queries = [];
     var queryType = schema.getQueryType();
     if (!queryType) {
@@ -15,9 +16,8 @@ function generateQueries(schema, config) {
     }
     var queryFields = queryType.getFields();
     Object.keys(queryFields).forEach(function (key) {
-        var _a, _b, _c;
         var queryField = queryFields[key];
-        if ((0, graphql_utils_1.endsWithOneOf)(queryField.name, (_a = config.excludeSuffixes) !== null && _a !== void 0 ? _a : [])) {
+        if ((0, graphql_utils_1.endsWithOneOf)(queryField.name, excludeSuffixes !== null && excludeSuffixes !== void 0 ? excludeSuffixes : [])) {
             return;
         }
         var fragmentName = (0, graphql_utils_1.getOutputTypeName)(queryField.type);
@@ -33,8 +33,13 @@ function generateQueries(schema, config) {
         var aliasName = queryName === queryField.name
             ? queryName
             : "".concat(queryName, ":").concat(queryField.name);
-        var query = "query ".concat(queryName).concat((0, graphql_utils_1.generateVariables)(queryField), " {\n      ").concat(aliasName).concat((0, graphql_utils_1.generateArgs)(queryField), " {\n        ...").concat((_b = config.fragmentPrefix) !== null && _b !== void 0 ? _b : "").concat(fragmentName).concat((_c = config.fragmentSuffix) !== null && _c !== void 0 ? _c : "", "\n      }\n    }");
-        queries.push(query);
+        if (overrides === null || overrides === void 0 ? void 0 : overrides[queryName]) {
+            queries.push(overrides === null || overrides === void 0 ? void 0 : overrides[queryName]);
+        }
+        else {
+            var query = "query ".concat(queryName).concat((0, graphql_utils_1.generateVariables)(queryField), " {\n        ").concat(aliasName).concat((0, graphql_utils_1.generateArgs)(queryField), " {\n          ...").concat(fragmentPrefix !== null && fragmentPrefix !== void 0 ? fragmentPrefix : "").concat(fragmentName).concat(fragmentSuffix !== null && fragmentSuffix !== void 0 ? fragmentSuffix : "", "\n        }\n      }");
+            queries.push(query);
+        }
     });
     return "# Queries\n\n".concat(queries.join("\n\n"), "\n\n");
 }

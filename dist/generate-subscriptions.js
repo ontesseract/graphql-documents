@@ -16,7 +16,7 @@ function generateSubscriptions(schema, config) {
     }
     var subscriptionFields = subscriptionType.getFields();
     Object.keys(subscriptionFields).forEach(function (key) {
-        var _a;
+        var _a, _b, _c;
         var subscriptionField = subscriptionFields[key];
         if ((0, graphql_utils_1.endsWithOneOf)(subscriptionField.name, (_a = config.excludeSuffixes) !== null && _a !== void 0 ? _a : [])) {
             return;
@@ -37,8 +37,13 @@ function generateSubscriptions(schema, config) {
         var aliasName = subscriptionName === subscriptionField.name
             ? subscriptionName
             : "".concat(subscriptionName, ": ").concat(subscriptionField.name);
-        var subscription = "subscription ".concat(subscriptionName).concat((0, graphql_utils_1.generateVariables)(subscriptionField), " {\n      ").concat(aliasName).concat((0, graphql_utils_1.generateArgs)(subscriptionField), " {\n        ...").concat(fragmentPrefix !== null && fragmentPrefix !== void 0 ? fragmentPrefix : "").concat(fragmentName).concat(fragmentSuffix !== null && fragmentSuffix !== void 0 ? fragmentSuffix : "", "\n      }\n    }");
-        subscriptions.push(subscription);
+        if ((_b = config.overrides) === null || _b === void 0 ? void 0 : _b[subscriptionName]) {
+            subscriptions.push((_c = config.overrides) === null || _c === void 0 ? void 0 : _c[subscriptionName]);
+        }
+        else {
+            var subscription = "subscription ".concat(subscriptionName).concat((0, graphql_utils_1.generateVariables)(subscriptionField), " {\n        ").concat(aliasName).concat((0, graphql_utils_1.generateArgs)(subscriptionField), " {\n          ...").concat(fragmentPrefix !== null && fragmentPrefix !== void 0 ? fragmentPrefix : "").concat(fragmentName).concat(fragmentSuffix !== null && fragmentSuffix !== void 0 ? fragmentSuffix : "", "\n        }\n      }");
+            subscriptions.push(subscription);
+        }
     });
     return "# Subscriptions\n\n".concat(subscriptions.join("\n\n"), "\n\n");
 }
