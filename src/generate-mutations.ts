@@ -12,7 +12,6 @@ import {
 function generateMutation<T, V>(
   mutationField: GraphQLField<T, V>,
   schema: GraphQLSchema,
-  upserts: boolean,
   config: GraphqlDocumentsConfig
 ) {
   const fragmentName = getOutputTypeName(mutationField.type);
@@ -42,17 +41,12 @@ function generateMutation<T, V>(
       ? mutationName
       : `${mutationName}:${mutationField.name}`;
 
-  if (upserts && mutationName.startsWith("insert")) {
-    mutationName = mutationName.replace("insert", "upsert");
-    aliasName = `${mutationName}:${mutationField.name}`;
-  }
-
   if (config.overrides?.[mutationName]) {
     return config.overrides?.[mutationName];
   }
 
   return `mutation ${mutationName}${generateVariables(mutationField, config.excludeArgKeys ?? [])} {
-    ${aliasName}${generateArgs(mutationField, config.excludeArgKeys ?? [], upserts, schema)} {
+    ${aliasName}${generateArgs(mutationField, config.excludeArgKeys ?? [], schema)} {
       ...${config.fragmentPrefix ?? ""}${fragmentName}${config.fragmentSuffix ?? ""}
     }
   }`;
@@ -60,8 +54,7 @@ function generateMutation<T, V>(
 
 export function generateMutations(
   schema: GraphQLSchema,
-  config: GraphqlDocumentsConfig,
-  upserts: boolean = false
+  config: GraphqlDocumentsConfig
 ): string {
   const { fragmentPrefix, fragmentSuffix } = config;
   const mutations: string[] = [];
@@ -76,17 +69,8 @@ export function generateMutations(
     if (endsWithOneOf(mutationField.name, config.excludeSuffixes ?? [])) {
       return;
     }
-    const mutation = generateMutation(mutationField, schema, false, config);
+    const mutation = generateMutation(mutationField, schema, config);
     mutations.push(mutation);
-    if (upserts && mutationField.name.startsWith("insert")) {
-      const upsertMutation = generateMutation(
-        mutationField,
-        schema,
-        true,
-        config
-      );
-      mutations.push(upsertMutation);
-    }
   });
 
   return `# Mutations\n\n${mutations.join("\n\n")}\n\n`;

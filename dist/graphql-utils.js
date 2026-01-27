@@ -1,7 +1,4 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.endsWithOneOf = endsWithOneOf;
 exports.getOutputTypeName = getOutputTypeName;
@@ -15,7 +12,6 @@ exports.hasLimitAndOffsetArgs = hasLimitAndOffsetArgs;
 exports.documentToDocument = documentToDocument;
 exports.getOperationName = getOperationName;
 exports.documentToString = documentToString;
-var case_1 = __importDefault(require("case"));
 var graphql_1 = require("graphql");
 function endsWithOneOf(value, suffixes) {
     for (var _i = 0, suffixes_1 = suffixes; _i < suffixes_1.length; _i++) {
@@ -84,39 +80,8 @@ function generateVariables(field, excludeKeys) {
     }
     return "";
 }
-function generateOnConflict(field, upsert, schema) {
-    if (schema === void 0) { schema = undefined; }
-    if (!schema ||
-        !upsert ||
-        !field.args.find(function (arg) { return arg.name === "onConflict"; })) {
-        return "";
-    }
-    var baseTypeName = field.name;
-    if (baseTypeName.startsWith("insert")) {
-        baseTypeName = baseTypeName.slice(6);
-    }
-    if (baseTypeName.endsWith("One")) {
-        baseTypeName = baseTypeName.slice(0, baseTypeName.length - 3);
-    }
-    var type = schema.getType("".concat(baseTypeName, "InsertInput"));
-    if (!(0, graphql_1.isInputObjectType)(type)) {
-        return "";
-    }
-    var excludeColumns = ["id", "createdAt", "updatedAt", "deletedAt"];
-    var typeFields = Object.values(type.getFields());
-    var updateColumns = typeFields
-        .filter(function (field) {
-        return !excludeColumns.includes(field.name) &&
-            (0, graphql_1.isScalarType)(getBaseInputType(field.type));
-    })
-        .map(function (field) { return field.name; });
-    var constraint = "".concat(case_1.default.snake(baseTypeName), "_pkey");
-    var onConflict = "onConflict:{ constraint:".concat(constraint, " updateColumns:[").concat(updateColumns.join(", "), "]}");
-    return "\n".concat(onConflict);
-}
-function generateArgs(field, excludeKeys, upsert, schema) {
+function generateArgs(field, excludeKeys, schema) {
     if (excludeKeys === void 0) { excludeKeys = []; }
-    if (upsert === void 0) { upsert = false; }
     if (schema === void 0) { schema = undefined; }
     if (field.args.length > 0) {
         var args_1 = [];
@@ -125,7 +90,7 @@ function generateArgs(field, excludeKeys, upsert, schema) {
                 args_1.push("".concat(arg.name, ": $").concat(arg.name));
             }
         });
-        return "(".concat(args_1.join(", "), " ").concat(generateOnConflict(field, upsert, schema), ")");
+        return "(".concat(args_1.join(", "), ")");
     }
     return "";
 }

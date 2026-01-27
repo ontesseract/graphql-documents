@@ -94,49 +94,9 @@ export function generateVariables(
   return "";
 }
 
-function generateOnConflict(
-  field: GraphQLField<any, any>,
-  upsert: boolean,
-  schema: GraphQLSchema | undefined = undefined
-): string {
-  if (
-    !schema ||
-    !upsert ||
-    !field.args.find((arg) => arg.name === "onConflict")
-  ) {
-    return "";
-  }
-  let baseTypeName = field.name;
-  if (baseTypeName.startsWith("insert")) {
-    baseTypeName = baseTypeName.slice(6);
-  }
-  if (baseTypeName.endsWith("One")) {
-    baseTypeName = baseTypeName.slice(0, baseTypeName.length - 3);
-  }
-  const type = schema.getType(`${baseTypeName}InsertInput`);
-  if (!isInputObjectType(type)) {
-    return "";
-  }
-
-  const excludeColumns = ["id", "createdAt", "updatedAt", "deletedAt"];
-  const typeFields = Object.values(type.getFields());
-  const updateColumns = typeFields
-    .filter(
-      (field) =>
-        !excludeColumns.includes(field.name) &&
-        isScalarType(getBaseInputType(field.type))
-    )
-    .map((field) => field.name);
-  const constraint = `${Case.snake(baseTypeName)}_pkey`;
-  const onConflict = `onConflict:{ constraint:${constraint} updateColumns:[${updateColumns.join(", ")}]}`;
-
-  return `\n${onConflict}`;
-}
-
 export function generateArgs(
   field: GraphQLField<any, any>,
   excludeKeys: string[] = [],
-  upsert = false,
   schema: GraphQLSchema | undefined = undefined
 ): string {
   if (field.args.length > 0) {
@@ -146,7 +106,7 @@ export function generateArgs(
         args.push(`${arg.name}: $${arg.name}`);
       }
     });
-    return `(${args.join(", ")} ${generateOnConflict(field, upsert, schema)})`;
+    return `(${args.join(", ")})`;
   }
   return "";
 }

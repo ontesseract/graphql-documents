@@ -5,7 +5,7 @@ export declare function getBaseType(type: GraphQLOutputType): GraphQLOutputType;
 export declare function getBaseInputType(type: GraphQLInputType): GraphQLInputType;
 export declare function hasScalars(type: GraphQLObjectType): boolean;
 export declare function generateVariables(field: GraphQLField<any, any>, excludeKeys?: string[]): string;
-export declare function generateArgs(field: GraphQLField<any, any>, excludeKeys?: string[], upsert?: boolean, schema?: GraphQLSchema | undefined): string;
+export declare function generateArgs(field: GraphQLField<any, any>, excludeKeys?: string[], schema?: GraphQLSchema | undefined): string;
 export declare function returnFieldMatchesOperationName(definition: OperationDefinitionNode): boolean;
 export declare function hasLimitAndOffsetArgs(definition: OperationDefinitionNode): boolean;
 export declare function documentToDocument(document: DocumentNode | string): DocumentNode;

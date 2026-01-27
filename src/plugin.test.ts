@@ -188,6 +188,249 @@ describe("GraphQL Documents", () => {
       expect(errors).toEqual([]);
     });
 
+    it("Should include onConflict argument in Hasura insert mutations", async () => {
+      const hasuraInsertSchema = buildSchema(/* GraphQL */ `
+        scalar uuid
+        scalar timestamp
+
+        enum article_constraint {
+          article_pkey
+          article_title_key
+        }
+
+        enum article_update_column {
+          title
+          content
+          published_on
+        }
+
+        input article_bool_exp {
+          _and: [article_bool_exp!]
+          _or: [article_bool_exp!]
+          _not: article_bool_exp
+        }
+
+        input article_on_conflict {
+          constraint: article_constraint!
+          update_columns: [article_update_column!]!
+          where: article_bool_exp
+        }
+
+        input article_insert_input {
+          id: uuid
+          title: String!
+          content: String!
+          published_on: timestamp
+        }
+
+        type article {
+          id: uuid!
+          title: String!
+          content: String!
+          published_on: timestamp
+        }
+
+        type article_mutation_response {
+          affected_rows: Int!
+          returning: [article!]!
+        }
+
+        type Query {
+          article: [article!]!
+        }
+
+        type Mutation {
+          insert_article(
+            objects: [article_insert_input!]!
+            on_conflict: article_on_conflict
+          ): article_mutation_response!
+        }
+
+        schema {
+          query: Query
+          mutation: Mutation
+        }
+      `);
+
+      const fragmentOutput = await plugin(hasuraInsertSchema, [], {
+        kind: "fragments",
+      });
+      const fragmentContent = getContent(fragmentOutput);
+
+      const mutationOutput = await plugin(hasuraInsertSchema, [], {
+        kind: "mutations",
+      });
+      const mutationContent = getContent(mutationOutput);
+
+      // Should include onConflict in variables
+      expect(mutationContent).toContain("$on_conflict: article_on_conflict");
+      // Should include onConflict in arguments
+      expect(mutationContent).toContain("on_conflict: $on_conflict");
+
+      const errors = graphqlValidate(
+        hasuraInsertSchema,
+        parse(fragmentContent + mutationContent)
+      ).filter((error) => !error.message.includes("is never used"));
+      expect(errors).toEqual([]);
+    });
+
+    it("Should include onConflict argument (camelCase) in insert mutations", async () => {
+      const camelCaseSchema = buildSchema(/* GraphQL */ `
+        scalar uuid
+        scalar timestamp
+
+        enum ArticleConstraint {
+          ARTICLE_PKEY
+          ARTICLE_TITLE_KEY
+        }
+
+        enum ArticleUpdateColumn {
+          TITLE
+          CONTENT
+          PUBLISHED_ON
+        }
+
+        input ArticleOnConflict {
+          constraint: ArticleConstraint!
+          updateColumns: [ArticleUpdateColumn!]!
+        }
+
+        input ArticleInsertInput {
+          id: uuid
+          title: String!
+          content: String!
+          publishedOn: timestamp
+        }
+
+        type Article {
+          id: uuid!
+          title: String!
+          content: String!
+          publishedOn: timestamp
+        }
+
+        type ArticleMutationResponse {
+          affectedRows: Int!
+          returning: [Article!]!
+        }
+
+        type Query {
+          article: [Article!]!
+        }
+
+        type Mutation {
+          insertArticle(
+            objects: [ArticleInsertInput!]!
+            onConflict: ArticleOnConflict
+          ): ArticleMutationResponse!
+        }
+
+        schema {
+          query: Query
+          mutation: Mutation
+        }
+      `);
+
+      const fragmentOutput = await plugin(camelCaseSchema, [], {
+        kind: "fragments",
+      });
+      const fragmentContent = getContent(fragmentOutput);
+
+      const mutationOutput = await plugin(camelCaseSchema, [], {
+        kind: "mutations",
+      });
+      const mutationContent = getContent(mutationOutput);
+
+      // Should include onConflict in variables (camelCase)
+      expect(mutationContent).toContain("$onConflict: ArticleOnConflict");
+      // Should include onConflict in arguments (camelCase)
+      expect(mutationContent).toContain("onConflict: $onConflict");
+
+      const errors = graphqlValidate(
+        camelCaseSchema,
+        parse(fragmentContent + mutationContent)
+      ).filter((error) => !error.message.includes("is never used"));
+      expect(errors).toEqual([]);
+    });
+
+    it("Should exclude onConflict when in excludeArgKeys", async () => {
+      const hasuraInsertSchema = buildSchema(/* GraphQL */ `
+        scalar uuid
+        scalar timestamp
+
+        enum article_constraint {
+          article_pkey
+        }
+
+        enum article_update_column {
+          title
+          content
+        }
+
+        input article_on_conflict {
+          constraint: article_constraint!
+          update_columns: [article_update_column!]!
+        }
+
+        input article_insert_input {
+          id: uuid
+          title: String!
+          content: String!
+        }
+
+        type article {
+          id: uuid!
+          title: String!
+          content: String!
+        }
+
+        type article_mutation_response {
+          affected_rows: Int!
+          returning: [article!]!
+        }
+
+        type Query {
+          article: [article!]!
+        }
+
+        type Mutation {
+          insert_article(
+            objects: [article_insert_input!]!
+            on_conflict: article_on_conflict
+          ): article_mutation_response!
+        }
+
+        schema {
+          query: Query
+          mutation: Mutation
+        }
+      `);
+
+      const fragmentOutput = await plugin(hasuraInsertSchema, [], {
+        kind: "fragments",
+      });
+      const fragmentContent = getContent(fragmentOutput);
+
+      const mutationOutput = await plugin(hasuraInsertSchema, [], {
+        kind: "mutations",
+        excludeArgKeys: ["on_conflict"],
+      });
+      const mutationContent = getContent(mutationOutput);
+
+      // Should NOT include onConflict in variables when excluded
+      expect(mutationContent).not.toContain("$on_conflict: article_on_conflict");
+      // Should NOT include onConflict in arguments when excluded
+      expect(mutationContent).not.toContain("on_conflict: $on_conflict");
+      // Should still include objects argument
+      expect(mutationContent).toContain("objects: $objects");
+
+      const errors = graphqlValidate(
+        hasuraInsertSchema,
+        parse(fragmentContent + mutationContent)
+      ).filter((error) => !error.message.includes("is never used"));
+      expect(errors).toEqual([]);
+    });
+
     it("Should generate valid subscriptions", async () => {
       const fragmentOutput = await plugin(schema, [], {
         kind: "fragments",

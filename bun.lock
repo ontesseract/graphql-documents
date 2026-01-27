@@ -5,13 +5,13 @@
       "name": "@ontesseract/graphql-documents",
       "dependencies": {
         "@graphql-codegen/plugin-helpers": "^5.1.1",
-        "@types/pluralize": "^0.0.33",
         "case": "^1.6.3",
         "pluralize": "^8.0.0",
         "prettier": "^3.6.2",
       },
       "devDependencies": {
         "@types/node": "^24.2.1",
+        "@types/pluralize": "^0.0.33",
         "graphql": "^16.11.0",
         "typescript": "^5.9.2",
         "vitest": "^3.2.4",
