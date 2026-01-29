@@ -62,6 +62,7 @@ function defaultValueForVariableName(argName) {
         case "_inc":
         case "_prepend":
         case "_set":
+        case "onConflict":
             return " = {}";
         default:
             return "";

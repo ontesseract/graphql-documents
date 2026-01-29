@@ -39,8 +39,7 @@ function generateMutation(mutationField, schema, config) {
     }
     return "mutation ".concat(mutationName).concat((0, graphql_utils_1.generateVariables)(mutationField, (_c = config.excludeArgKeys) !== null && _c !== void 0 ? _c : []), " {\n    ").concat(aliasName).concat((0, graphql_utils_1.generateArgs)(mutationField, (_d = config.excludeArgKeys) !== null && _d !== void 0 ? _d : [], schema), " {\n      ...").concat((_e = config.fragmentPrefix) !== null && _e !== void 0 ? _e : "").concat(fragmentName).concat((_f = config.fragmentSuffix) !== null && _f !== void 0 ? _f : "", "\n    }\n  }");
 }
-function generateMutations(schema, config, upserts) {
-    if (upserts === void 0) { upserts = false; }
+function generateMutations(schema, config) {
     var fragmentPrefix = config.fragmentPrefix, fragmentSuffix = config.fragmentSuffix;
     var mutations = [];
     var mutationType = schema.getMutationType();
