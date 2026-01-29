@@ -9,44 +9,65 @@ import {
   getOutputTypeName,
 } from "./graphql-utils";
 
-function generateMutation<T, V>(
-  mutationField: GraphQLField<T, V>,
-  schema: GraphQLSchema,
-  config: GraphqlDocumentsConfig
-) {
+function generateMutation<T, V>({
+  mutationField,
+  schema,
+  config,
+  isUpsert = false,
+}: {
+  mutationField: GraphQLField<T, V>;
+  schema: GraphQLSchema;
+  config: GraphqlDocumentsConfig;
+  isUpsert?: boolean;
+}) {
   const fragmentName = getOutputTypeName(mutationField.type);
 
-  const typePascalCase = Case.pascal(
-    fragmentName.replace("MutationResponse", "")
-  );
+  // Extract type name from mutation response type name
+  const typeName = fragmentName.replace(/MutationResponse$/, "");
+  const typePascalCase = Case.pascal(typeName);
   const typePascalCasePlural = pluralize(typePascalCase);
 
   let mutationName = mutationField.name;
-  if (mutationName === `insert${typePascalCase}`) {
+  let upsertMutationName = "";
+  if (mutationField.name === `insert${typePascalCase}`) {
     mutationName = `insert${typePascalCasePlural}`;
-  } else if (mutationName === `insert${typePascalCase}One`) {
+    upsertMutationName = `upsert${typePascalCasePlural}`;
+  } else if (mutationField.name === `insert${typePascalCase}One`) {
     mutationName = `insert${typePascalCase}`;
-  } else if (mutationName === `update${typePascalCase}`) {
+    upsertMutationName = `upsert${typePascalCase}`;
+  } else if (mutationField.name === `update${typePascalCase}`) {
     mutationName = `update${typePascalCasePlural}`;
-  } else if (mutationName === `update${typePascalCase}ByPk`) {
+  } else if (mutationField.name === `update${typePascalCase}ByPk`) {
     mutationName = `update${typePascalCase}`;
-  } else if (mutationName === `delete${typePascalCase}`) {
+  } else if (mutationField.name === `delete${typePascalCase}`) {
     mutationName = `delete${typePascalCasePlural}`;
-  } else if (mutationName === `delete${typePascalCase}ByPk`) {
+  } else if (mutationField.name === `delete${typePascalCase}ByPk`) {
     mutationName = `delete${typePascalCase}`;
   }
 
+  let excludeArgKeys = config.excludeArgKeys ?? [];
   let aliasName =
     mutationName === mutationField.name
       ? mutationName
       : `${mutationName}:${mutationField.name}`;
 
+  if (isUpsert) {
+    if (!upsertMutationName) {
+      throw new Error(
+        `upsert mutations are only supported for insert mutations. Invalid mutation name: ${mutationField.name}`
+      );
+    }
+    mutationName = upsertMutationName;
+    aliasName = `${mutationName}:${mutationField.name}`;
+    excludeArgKeys = excludeArgKeys.filter((key) => key !== "onConflict");
+  }
+
   if (config.overrides?.[mutationName]) {
     return config.overrides?.[mutationName];
   }
 
-  return `mutation ${mutationName}${generateVariables(mutationField, config.excludeArgKeys ?? [])} {
-    ${aliasName}${generateArgs(mutationField, config.excludeArgKeys ?? [], schema)} {
+  return `mutation ${mutationName}${generateVariables(mutationField, excludeArgKeys, isUpsert)} {
+    ${aliasName}${generateArgs(mutationField, excludeArgKeys, schema)} {
       ...${config.fragmentPrefix ?? ""}${fragmentName}${config.fragmentSuffix ?? ""}
     }
   }`;
@@ -69,8 +90,24 @@ export function generateMutations(
     if (endsWithOneOf(mutationField.name, config.excludeSuffixes ?? [])) {
       return;
     }
-    const mutation = generateMutation(mutationField, schema, config);
+    const mutation = generateMutation({
+      mutationField,
+      schema,
+      config,
+    });
     mutations.push(mutation);
+    if (
+      config.includeUpsertMutations &&
+      mutationField.name.startsWith("insert")
+    ) {
+      const upsertMutation = generateMutation({
+        mutationField,
+        schema,
+        config,
+        isUpsert: true,
+      });
+      mutations.push(upsertMutation);
+    }
   });
 
   return `# Mutations\n\n${mutations.join("\n\n")}\n\n`;

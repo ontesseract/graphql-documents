@@ -3,11 +3,11 @@ import {
   type DocumentNode,
   type GraphQLField,
   type GraphQLInputType,
+  GraphQLNonNull,
   type GraphQLObjectType,
   type GraphQLOutputType,
   type GraphQLSchema,
   isEnumType,
-  isInputObjectType,
   isListType,
   isNonNullType,
   isObjectType,
@@ -70,7 +70,6 @@ function defaultValueForVariableName(argName: string): string {
     case "_inc":
     case "_prepend":
     case "_set":
-    case "onConflict":
       return " = {}";
     default:
       return "";
@@ -79,14 +78,19 @@ function defaultValueForVariableName(argName: string): string {
 
 export function generateVariables(
   field: GraphQLField<any, any>,
-  excludeKeys: string[] = []
+  excludeKeys: string[] = [],
+  isUpsert: boolean = false
 ): string {
   if (field.args.length > 0) {
     const variables: string[] = [];
     field.args.forEach((arg) => {
       if (!excludeKeys.includes(arg.name)) {
+        let type = arg.type;
+        if (arg.name === "onConflict" && isUpsert && !isNonNullType(type)) {
+          type = new GraphQLNonNull(type);
+        }
         variables.push(
-          `$${arg.name}: ${arg.type}${defaultValueForVariableName(arg.name)}`
+          `$${arg.name}: ${type}${defaultValueForVariableName(arg.name)}`
         );
       }
     });

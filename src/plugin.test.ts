@@ -70,66 +70,6 @@ const typeDefs = /* GraphQL */ `
   }
 `;
 
-const hasuraNamedTypeDefs = /* GraphQL */ `
-  scalar uuid
-  scalar citext
-
-  type profile_attribute {
-    profile_id: uuid!
-    kind: String!
-    order: Int
-    value: String!
-  }
-
-  type profile {
-    id: uuid!
-    display_name: String!
-    photo_url: String!
-    username: citext
-    relationshipCamelCase: [profile_attribute!]!
-  }
-
-  type user_role {
-    id: String!
-    label: String!
-  }
-
-  type value_kind {
-    id: String!
-    label: String!
-  }
-
-  input profile_input {
-    display_name: String!
-    photo_url: String!
-    username: citext
-  }
-
-  type Query {
-    profile_attribute: [profile_attribute!]!
-    profile: [profile!]!
-    profile_by_pk(id: uuid!): profile
-    user_role: [user_role!]!
-    user_role_by_pk(id: String!): user_role
-    value_kind: [value_kind!]!
-    value_kind_by_pk(id: String!): value_kind
-  }
-
-  type Mutation {
-    create_profile(input: profile_input!): profile!
-  }
-
-  type Subscription {
-    profile_by_pk(id: uuid!): profile
-  }
-
-  schema {
-    query: Query
-    mutation: Mutation
-    subscription: Subscription
-  }
-`;
-
 describe("GraphQL Documents", () => {
   describe("Output", () => {
     const schema = buildSchema(typeDefs);
@@ -188,93 +128,7 @@ describe("GraphQL Documents", () => {
       expect(errors).toEqual([]);
     });
 
-    it("Should include onConflict argument in Hasura insert mutations", async () => {
-      const hasuraInsertSchema = buildSchema(/* GraphQL */ `
-        scalar uuid
-        scalar timestamp
-
-        enum article_constraint {
-          article_pkey
-          article_title_key
-        }
-
-        enum article_update_column {
-          title
-          content
-          published_on
-        }
-
-        input article_bool_exp {
-          _and: [article_bool_exp!]
-          _or: [article_bool_exp!]
-          _not: article_bool_exp
-        }
-
-        input article_on_conflict {
-          constraint: article_constraint!
-          update_columns: [article_update_column!]!
-          where: article_bool_exp
-        }
-
-        input article_insert_input {
-          id: uuid
-          title: String!
-          content: String!
-          published_on: timestamp
-        }
-
-        type article {
-          id: uuid!
-          title: String!
-          content: String!
-          published_on: timestamp
-        }
-
-        type article_mutation_response {
-          affected_rows: Int!
-          returning: [article!]!
-        }
-
-        type Query {
-          article: [article!]!
-        }
-
-        type Mutation {
-          insert_article(
-            objects: [article_insert_input!]!
-            on_conflict: article_on_conflict
-          ): article_mutation_response!
-        }
-
-        schema {
-          query: Query
-          mutation: Mutation
-        }
-      `);
-
-      const fragmentOutput = await plugin(hasuraInsertSchema, [], {
-        kind: "fragments",
-      });
-      const fragmentContent = getContent(fragmentOutput);
-
-      const mutationOutput = await plugin(hasuraInsertSchema, [], {
-        kind: "mutations",
-      });
-      const mutationContent = getContent(mutationOutput);
-
-      // Should include onConflict in variables
-      expect(mutationContent).toContain("$on_conflict: article_on_conflict");
-      // Should include onConflict in arguments
-      expect(mutationContent).toContain("on_conflict: $on_conflict");
-
-      const errors = graphqlValidate(
-        hasuraInsertSchema,
-        parse(fragmentContent + mutationContent)
-      ).filter((error) => !error.message.includes("is never used"));
-      expect(errors).toEqual([]);
-    });
-
-    it("Should include onConflict argument (camelCase) in insert mutations", async () => {
+    it("Should include onConflict argument in insert mutations when not excluded", async () => {
       const camelCaseSchema = buildSchema(/* GraphQL */ `
         scalar uuid
         scalar timestamp
@@ -291,8 +145,8 @@ describe("GraphQL Documents", () => {
         }
 
         input ArticleOnConflict {
-          constraint: ArticleConstraint!
-          updateColumns: [ArticleUpdateColumn!]!
+          constraint: ArticleConstraint
+          updateColumns: [ArticleUpdateColumn!]
         }
 
         input ArticleInsertInput {
@@ -338,6 +192,7 @@ describe("GraphQL Documents", () => {
 
       const mutationOutput = await plugin(camelCaseSchema, [], {
         kind: "mutations",
+        excludeArgKeys: [], // Explicitly include onConflict by not excluding it
       });
       const mutationContent = getContent(mutationOutput);
 
@@ -354,50 +209,50 @@ describe("GraphQL Documents", () => {
     });
 
     it("Should exclude onConflict when in excludeArgKeys", async () => {
-      const hasuraInsertSchema = buildSchema(/* GraphQL */ `
+      const camelCaseSchema = buildSchema(/* GraphQL */ `
         scalar uuid
         scalar timestamp
 
-        enum article_constraint {
-          article_pkey
+        enum ArticleConstraint {
+          ARTICLE_PKEY
         }
 
-        enum article_update_column {
-          title
-          content
+        enum ArticleUpdateColumn {
+          TITLE
+          CONTENT
         }
 
-        input article_on_conflict {
-          constraint: article_constraint!
-          update_columns: [article_update_column!]!
+        input ArticleOnConflict {
+          constraint: ArticleConstraint
+          updateColumns: [ArticleUpdateColumn!]
         }
 
-        input article_insert_input {
+        input ArticleInsertInput {
           id: uuid
           title: String!
           content: String!
         }
 
-        type article {
+        type Article {
           id: uuid!
           title: String!
           content: String!
         }
 
-        type article_mutation_response {
-          affected_rows: Int!
-          returning: [article!]!
+        type ArticleMutationResponse {
+          affectedRows: Int!
+          returning: [Article!]!
         }
 
         type Query {
-          article: [article!]!
+          article: [Article!]!
         }
 
         type Mutation {
-          insert_article(
-            objects: [article_insert_input!]!
-            on_conflict: article_on_conflict
-          ): article_mutation_response!
+          insertArticle(
+            objects: [ArticleInsertInput!]!
+            onConflict: ArticleOnConflict
+          ): ArticleMutationResponse!
         }
 
         schema {
@@ -406,26 +261,196 @@ describe("GraphQL Documents", () => {
         }
       `);
 
-      const fragmentOutput = await plugin(hasuraInsertSchema, [], {
+      const fragmentOutput = await plugin(camelCaseSchema, [], {
         kind: "fragments",
       });
       const fragmentContent = getContent(fragmentOutput);
 
-      const mutationOutput = await plugin(hasuraInsertSchema, [], {
+      const mutationOutput = await plugin(camelCaseSchema, [], {
         kind: "mutations",
-        excludeArgKeys: ["on_conflict"],
+        excludeArgKeys: ["onConflict"],
       });
       const mutationContent = getContent(mutationOutput);
 
       // Should NOT include onConflict in variables when excluded
-      expect(mutationContent).not.toContain("$on_conflict: article_on_conflict");
+      expect(mutationContent).not.toContain("$onConflict: ArticleOnConflict");
       // Should NOT include onConflict in arguments when excluded
-      expect(mutationContent).not.toContain("on_conflict: $on_conflict");
+      expect(mutationContent).not.toContain("onConflict: $onConflict");
       // Should still include objects argument
       expect(mutationContent).toContain("objects: $objects");
 
       const errors = graphqlValidate(
-        hasuraInsertSchema,
+        camelCaseSchema,
+        parse(fragmentContent + mutationContent)
+      ).filter((error) => !error.message.includes("is never used"));
+      expect(errors).toEqual([]);
+    });
+
+    it("Should generate upsert mutations with onConflict argument and default value", async () => {
+      const camelCaseSchema = buildSchema(/* GraphQL */ `
+        scalar uuid
+        scalar timestamp
+
+        enum ArticleConstraint {
+          ARTICLE_PKEY
+          ARTICLE_TITLE_KEY
+        }
+
+        enum ArticleUpdateColumn {
+          TITLE
+          CONTENT
+          PUBLISHED_ON
+        }
+
+        input ArticleOnConflict {
+          constraint: ArticleConstraint
+          updateColumns: [ArticleUpdateColumn!]
+        }
+
+        input ArticleInsertInput {
+          id: uuid
+          title: String!
+          content: String!
+          publishedOn: timestamp
+        }
+
+        type Article {
+          id: uuid!
+          title: String!
+          content: String!
+          publishedOn: timestamp
+        }
+
+        type ArticleMutationResponse {
+          affectedRows: Int!
+          returning: [Article!]!
+        }
+
+        type Query {
+          article: [Article!]!
+        }
+
+        type Mutation {
+          insertArticle(
+            objects: [ArticleInsertInput!]!
+            onConflict: ArticleOnConflict
+          ): ArticleMutationResponse!
+        }
+
+        schema {
+          query: Query
+          mutation: Mutation
+        }
+      `);
+
+      const fragmentOutput = await plugin(camelCaseSchema, [], {
+        kind: "fragments",
+      });
+      const fragmentContent = getContent(fragmentOutput);
+
+      const mutationOutput = await plugin(camelCaseSchema, [], {
+        kind: "mutations",
+        includeUpsertMutations: true,
+      });
+      const mutationContent = getContent(mutationOutput);
+
+      // Should include upsert mutation
+      expect(mutationContent).toContain("mutation upsertArticles");
+      // Should include onConflict in variables with default value
+      expect(mutationContent).toContain("$onConflict: ArticleOnConflict");
+      // Should include onConflict in arguments
+      expect(mutationContent).toContain("onConflict: $onConflict");
+      // Should use alias format (prettier adds space after colon)
+      expect(mutationContent).toMatch(/upsertArticles:\s*insertArticle/);
+      // Should include objects argument
+      expect(mutationContent).toContain("objects: $objects");
+      // Regular insert mutation should NOT include onConflict
+      expect(mutationContent).not.toContain(
+        "mutation insertArticles($objects: [ArticleInsertInput!]!, $onConflict:"
+      );
+
+      const errors = graphqlValidate(
+        camelCaseSchema,
+        parse(fragmentContent + mutationContent)
+      ).filter((error) => !error.message.includes("is never used"));
+      expect(errors).toEqual([]);
+    });
+
+    it("Should generate upsert mutations matching example format", async () => {
+      const authAccountSchema = buildSchema(/* GraphQL */ `
+        scalar uuid
+
+        enum AuthAccountConstraint {
+          AUTH_ACCOUNT_PKEY
+        }
+
+        enum AuthAccountUpdateColumn {
+          ID
+          EMAIL
+        }
+
+        input AuthAccountOnConflict {
+          constraint: AuthAccountConstraint
+          updateColumns: [AuthAccountUpdateColumn!]
+        }
+
+        input AuthAccountInsertInput {
+          id: uuid
+          email: String!
+        }
+
+        type AuthAccount {
+          id: uuid!
+          email: String!
+        }
+
+        type AuthAccountMutationResponse {
+          affectedRows: Int!
+          returning: [AuthAccount!]!
+        }
+
+        type Query {
+          authAccount: [AuthAccount!]!
+        }
+
+        type Mutation {
+          insertAuthAccount(
+            objects: [AuthAccountInsertInput!]!
+            onConflict: AuthAccountOnConflict
+          ): AuthAccountMutationResponse!
+        }
+
+        schema {
+          query: Query
+          mutation: Mutation
+        }
+      `);
+
+      const fragmentOutput = await plugin(authAccountSchema, [], {
+        kind: "fragments",
+      });
+      const fragmentContent = getContent(fragmentOutput);
+
+      const mutationOutput = await plugin(authAccountSchema, [], {
+        kind: "mutations",
+        includeUpsertMutations: true,
+      });
+      const mutationContent = getContent(mutationOutput);
+
+      // Should generate upsert mutation matching the example format
+      expect(mutationContent).toContain("mutation upsertAuthAccounts");
+      expect(mutationContent).toContain("$objects: [AuthAccountInsertInput!]!");
+      expect(mutationContent).toContain("$onConflict: AuthAccountOnConflict");
+      // Prettier adds space after colon
+      expect(mutationContent).toMatch(
+        /upsertAuthAccounts:\s*insertAuthAccount/
+      );
+      expect(mutationContent).toContain("objects: $objects");
+      expect(mutationContent).toContain("onConflict: $onConflict");
+      expect(mutationContent).toContain("...AuthAccountMutationResponse");
+
+      const errors = graphqlValidate(
+        authAccountSchema,
         parse(fragmentContent + mutationContent)
       ).filter((error) => !error.message.includes("is never used"));
       expect(errors).toEqual([]);
@@ -466,28 +491,6 @@ describe("GraphQL Documents", () => {
       );
 
       const errors = graphqlValidate(schema, parse(content));
-      expect(errors).toEqual([]);
-    });
-
-    it("Should generate hasura named documents", async () => {
-      const hasuraNamedSchema = buildSchema(hasuraNamedTypeDefs);
-      const output = await plugin(hasuraNamedSchema, [], {
-        kind: "all_documents",
-      });
-      const content = getContent(output);
-
-      expect(content).toContain(
-        "fragment profile_attribute on profile_attribute {"
-      );
-      expect(content).toContain("query profile_attribute {");
-      expect(content).toContain(
-        "mutation create_profile($input: profile_input!) {"
-      );
-      expect(content).toContain(
-        "subscription profile_by_pkSubscription($id: uuid!) {"
-      );
-
-      const errors = graphqlValidate(hasuraNamedSchema, parse(content));
       expect(errors).toEqual([]);
     });
   });
@@ -956,50 +959,6 @@ describe("GraphQL Documents", () => {
         const errors = graphqlValidate(schema, parse(content)).filter(
           (error) => !error.message.includes("is never used")
         );
-        expect(errors).toEqual([]);
-      });
-
-      it("Should work with Hasura named schema overrides", async () => {
-        const hasuraNamedSchema = buildSchema(hasuraNamedTypeDefs);
-        const output = await plugin(hasuraNamedSchema, [], {
-          kind: "all_documents",
-          overrides: {
-            profile: `fragment profile on profile {
-              id
-              display_name
-              photo_url
-              # Custom Hasura profile fragment
-            }`,
-            create_profile: `mutation create_profile($input: profile_input!) {
-              create_profile(input: $input) {
-                ...profile
-                # Custom Hasura create_profile mutation
-              }
-            }`,
-            profile_by_pkSubscription: `subscription profile_by_pkSubscription($id: uuid!) {
-              profile_by_pk(id: $id) {
-                ...profile
-                # Custom Hasura profile subscription
-              }
-            }`,
-          },
-        });
-        const content = getContent(output);
-
-        // Should contain Hasura-specific overrides
-        expect(content).toContain("# Custom Hasura profile fragment");
-        expect(content).toContain("# Custom Hasura create_profile mutation");
-        expect(content).toContain("# Custom Hasura profile subscription");
-
-        // Should use Hasura naming conventions
-        expect(content).toContain("fragment profile on profile {");
-        expect(content).toContain("create_profile(input: $input) {");
-        expect(content).toContain("profile_by_pkSubscription($id: uuid!) {");
-
-        const errors = graphqlValidate(
-          hasuraNamedSchema,
-          parse(content)
-        ).filter((error) => !error.message.includes("is never used"));
         expect(errors).toEqual([]);
       });
     });

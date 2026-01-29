@@ -62,19 +62,23 @@ function defaultValueForVariableName(argName) {
         case "_inc":
         case "_prepend":
         case "_set":
-        case "onConflict":
             return " = {}";
         default:
             return "";
     }
 }
-function generateVariables(field, excludeKeys) {
+function generateVariables(field, excludeKeys, isUpsert) {
     if (excludeKeys === void 0) { excludeKeys = []; }
+    if (isUpsert === void 0) { isUpsert = false; }
     if (field.args.length > 0) {
         var variables_1 = [];
         field.args.forEach(function (arg) {
             if (!excludeKeys.includes(arg.name)) {
-                variables_1.push("$".concat(arg.name, ": ").concat(arg.type).concat(defaultValueForVariableName(arg.name)));
+                var type = arg.type;
+                if (arg.name === "onConflict" && isUpsert && !(0, graphql_1.isNonNullType)(type)) {
+                    type = new graphql_1.GraphQLNonNull(type);
+                }
+                variables_1.push("$".concat(arg.name, ": ").concat(type).concat(defaultValueForVariableName(arg.name)));
             }
         });
         return "(".concat(variables_1.join(", "), ")");

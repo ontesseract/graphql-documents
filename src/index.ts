@@ -25,7 +25,7 @@ const defaultFragmentExcludeSuffixes = [
   "_var_samp_fields",
   "_variance_fields",
 ];
-const defaultMutationExcludeArgKeys: string[] = [];
+const defaultMutationExcludeArgKeys: string[] = ["onConflict"];
 
 function check(
   generatorKind: GeneratorKind | GeneratorKind[],

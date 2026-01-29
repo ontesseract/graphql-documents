@@ -27,4 +27,5 @@ export interface GraphqlDocumentsConfig {
     excludeSuffixes?: string[];
     excludeArgKeys?: string[];
     overrides?: Record<string, string>;
+    includeUpsertMutations?: boolean;
 }

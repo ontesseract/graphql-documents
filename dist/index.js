@@ -67,7 +67,7 @@ var defaultFragmentExcludeSuffixes = [
     "_var_samp_fields",
     "_variance_fields",
 ];
-var defaultMutationExcludeArgKeys = [];
+var defaultMutationExcludeArgKeys = ["onConflict"];
 function check(generatorKind, against) {
     if (Array.isArray(generatorKind)) {
         return (generatorKind.includes(against) || generatorKind.includes("all_documents"));
